@@ -1,0 +1,129 @@
+#section1
+
+
+clc 
+ 
+%%   Definition of the functions 
+   function [x RTE RRS]=Jacobi(A,b,x0,xs,max_iter) 
+   D=diag(1./diag(A)); 
+   L=tril(A,-1); 
+   U=triu(A,1); 
+   T=-D*(L+U); 
+   c=D*b; 
+   x(:,1)=T*x0+c; 
+   RTE(1)=norm(x(:,1)-xs)/norm(xs); 
+   RRE(1)=norm(A*x(:,1)-b)/norm(b); 
+   for iter = 2:20 
+       x(:,iter)=T*x(:,iter-1)+c; 
+       RTE(iter)=norm(x(:,iter)-xs)/norm(xs); 
+       RRS(iter)=norm(A*x(:,iter)-b)/norm(b); 
+   end 
+   end 
+   %----------------------------------------------------------------------------   
+   function [x RTE RRS]=GaussSeidel(A,b,x0,xs,max_iter) 
+       D=diag(diag(A)); 
+       L=tril(A,-1); 
+       U=triu(A,1); 
+       I=inv(D+L); 
+       T=I*U; 
+       c=I*b; 
+       x(:,1)=T*x0+c; 
+       RTE(1)=norm(x(:,1)-xs)/norm(xs); 
+       RRS(1)=norm(A*x(:,1)-b)/norm(b); 
+       for iter = 2:20 
+           x(:,iter)=-T*x(:,iter-1)+c; 
+           RTE(iter)=norm(x(:,iter)-xs)/norm(xs); 
+           RRS(iter)=norm(A*x(:,iter)-b)/norm(b); 
+       end 
+   end 
+%%================================================================================== 
+%%   PART (a) 
+   A = [7 4 2 0.5 ; 0.5 3 1 0.5 ; 1.5 0.5 5 2 ; 1 2 0.5 4]; 
+   b = [23.5 12 15 12]'; 
+   xs = [1 3 2 1]'; 
+   x0 = xs*0; 
+   max_iter = 20; 
+   [x_J RTE_J RRS_J]=Jacobi(A,b,x0,xs,max_iter); 
+   [x_GS RTE_GS RRS_GS]=GaussSeidel(A,b,x0,xs,max_iter); 
+   iter = [1:max_iter]'; 
+   plot(iter, log10(RTE_J'),iter, log10(RTE_GS')) 
+   grid on 
+   legend({'Jacobi';'GaussSeidel'}) 
+   title('Graph of the errors') 
+   xlabel('Iteration') 
+   ylabel('log10(RTE)') 
+   
+%%================================================================================== 
+%%   PART (b) 
+   C = cond(A); 
+   plot(iter, log10(RTE_GS'), iter, log10(RRS_GS'*C),iter, log10(RRS_GS'/C)) 
+   grid on 
+   legend({'log10(RTE)';'log10(RRS*C)';'log10(RRS/C)'}) 
+   title('Graph of the errors for GaussSeidel Method') 
+   xlabel('Iteration') 
+   ylabel('log10(Errors)')
+
+
+
+
+
+
+
+#section2
+function [v1 , no_itr, norm1] = Newt' % margin = no. of input argument: if margin <5 , no_itr = 20 ; end if margin <4 , error = 10A-5;no_ if margin <3 ,no_itr = 20;error 
+v1 = v; fnvl = feval(fn,v1); i = 0; while true jacob_fnv1 = feval(jacob_fn,' H = jacob_fnv1\fnv1; v1 = v1 - H; fnv1 = feval(fn,v1); i = i + 1 ; norm1 = norm(fnv1); if i > no_itr && norm1 < ern %if norm(fnv1) < error , bre; 
+end 
+end function [v1 , no_itr, norm1] = Newt' v1 = v; fnv1 = feval(fn,v1); i = 0; fprintf(' Iteration' x while true norm1 = norm(fnv1); fprintf('%10d 1%10.4f1 %• jacob_fnv1 = feval(jacob_fn,' H = jacob_fnv1\fnv1; v1 = v1 - H; fnv1 = feval(fn,v1); i = i + 1 ; norm1 = norm(fnv1); if i > no_itr && norm1 < ern %if norm(fnv1) < error bre; 
+
+
+
+
+
+#section 3
+import numpy as np
+import scipy.interpolate as interp
+
+# auxiliary function for mesh generation
+def gimme_mesh(n):
+    minval = -1
+    maxval =  1
+    # produce an asymmetric shape in order to catch issues with transpositions
+    return np.meshgrid(np.linspace(minval, maxval, n),
+                       np.linspace(minval, maxval, n + 1))
+
+# set up underlying test functions, vectorized
+def fun_smooth(x, y):
+    return np.cos(np.pi*x) * np.sin(np.pi*y)
+
+def fun_evil(x, y):
+    # watch out for singular origin; function has no unique limit there
+    return np.where(x**2 + y**2 > 1e-10, x*y/(x**2+y**2), 0.5)
+
+# sparse input mesh, 6x7 in shape
+N_sparse = 6
+x_sparse, y_sparse = gimme_mesh(N_sparse)
+z_sparse_smooth = fun_smooth(x_sparse, y_sparse)
+z_sparse_evil = fun_evil(x_sparse, y_sparse)
+
+# scattered input points, 10^2 altogether (shape (100,))
+N_scattered = 10
+rng = np.random.default_rng()
+x_scattered, y_scattered = rng.random((2, N_scattered**2))*2 - 1
+z_scattered_smooth = fun_smooth(x_scattered, y_scattered)
+z_scattered_evil = fun_evil(x_scattered, y_scattered)
+
+# dense output mesh, 20x21 in shape
+N_dense = 20
+x_dense, y_dense = gimme_mesh(N_dense)
+import scipy.interpolate as interp
+
+sparse_points = np.stack([x_sparse.ravel(), y_sparse.ravel()], -1)  # shape (N, 2) in 2d
+dense_points = np.stack([x_dense.ravel(), y_dense.ravel()], -1)  # shape (N, 2) in 2d
+
+zfun_smooth_rbf = interp.RBFInterpolator(sparse_points, z_sparse_smooth.ravel(),
+                                         smoothing=0, kernel='cubic')  # explicit default smoothing=0 for interpolation
+z_dense_smooth_rbf = zfun_smooth_rbf(dense_points).reshape(x_dense.shape)  # not really a function, but a callable class instance
+
+zfun_evil_rbf = interp.RBFInterpolator(sparse_points, z_sparse_evil.ravel(),
+                                       smoothing=0, kernel='cubic')  # explicit default smoothing=0 for interpolation
+z_dense_evil_rbf = zfun_evil_rbf(dense_points).reshape(x_dense.shape)  # not really a function, but a callable class instance
